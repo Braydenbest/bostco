@@ -1,0 +1,10 @@
+landing page
+search/listing page
+product page
+shopping cart page
+checkout page
+account page
+- settings
+- orders
+sign up page
+sign in/login
