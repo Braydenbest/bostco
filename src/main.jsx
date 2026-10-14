@@ -1,60 +1,15 @@
 import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import AccountPage from './AccountPage.jsx';
+import CheckoutPage from './CheckoutPage.jsx';
+import ProductCard from './ProductCard.jsx';
+import ProductPage from './ProductPage.jsx';
+import SearchPage from './SearchPage.jsx';
+import SignInPage from './SignInPage.jsx';
+import SignupPage from './SignupPage.jsx';
+import { categories, formatPrice, products } from './products.js';
 import './styles.css';
-
-const products = [
-  {
-    id: 'wash',
-    name: 'Sunday Reset Hand Wash',
-    category: 'Home',
-    subcategory: 'Bath',
-    price: 8,
-    tag: 'BOSTCO PICK',
-    detail: 'A sink-side upgrade. Two in the set.',
-    imageClass: 'image-coral',
-    image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=850&q=80',
-    imageAlt: 'Minimal hand wash and skincare bottles',
-  },
-  {
-    id: 'bottle',
-    name: 'Daytrip Insulated Bottle',
-    category: 'Kitchen',
-    subcategory: 'On the go',
-    price: 12,
-    tag: 'JUST LANDED',
-    detail: 'Cold stays cold. Your new desk buddy.',
-    imageClass: 'image-yellow',
-    image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=850&q=80',
-    imageAlt: 'Colorful reusable drink bottles',
-  },
-  {
-    id: 'cream',
-    name: 'Cloud Nine Daily Cream',
-    category: 'Beauty',
-    subcategory: 'Skincare',
-    price: 16,
-    tag: 'MEMBER FAVE',
-    detail: 'A little glow goes a long way.',
-    imageClass: 'image-lilac',
-    image: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=850&q=80',
-    imageAlt: 'Daily moisturizer and skincare products',
-  },
-  {
-    id: 'headphones',
-    name: 'On-the-go Wireless Headphones',
-    category: 'Tech',
-    subcategory: 'Everyday',
-    price: 19,
-    tag: 'SMALL BUT MIGHTY',
-    detail: 'Good sound, wherever the day goes.',
-    imageClass: 'image-blue',
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=850&q=80',
-    imageAlt: 'Wireless headphones for everyday listening',
-  },
-];
-
-const categories = ['All', 'Home', 'Beauty', 'Kitchen', 'Tech'];
-const formatPrice = (amount) => `$${amount.toFixed(2)}`;
 
 function SearchIcon() {
   return (
@@ -74,7 +29,7 @@ function BagIcon() {
   );
 }
 
-function Header({ itemCount, onOpenCart, onSearch, searchInputRef, onSelectCategory }) {
+function Header({ itemCount, onOpenCart, onSearch, onSearchSubmit, searchInputRef, onSelectCategory, searchQuery }) {
   return (
     <>
       <div className="announcement-bar">
@@ -83,25 +38,28 @@ function Header({ itemCount, onOpenCart, onSearch, searchInputRef, onSelectCateg
         <span className="announcement-right">MEMBERS GET MORE <span aria-hidden="true">↗</span></span>
       </div>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Bostco home">bostco<span>.</span></a>
+        <Link className="brand" to="/" aria-label="Bostco home">bostco<span>.</span></Link>
         <nav className="primary-nav" aria-label="Main navigation">
-          <a href="#finds" onClick={() => onSelectCategory('All')}>Shop all</a>
+          <Link to="/#finds" onClick={() => onSelectCategory('All')}>Shop all</Link>
           {['Home', 'Beauty', 'Kitchen'].map((category) => (
-            <a key={category} href="#finds" onClick={() => onSelectCategory(category)}>{category}</a>
+            <Link key={category} to="/#finds" onClick={() => onSelectCategory(category)}>{category}</Link>
           ))}
         </nav>
         <div className="header-tools">
-          <label className="search-box">
-            <SearchIcon />
+          <Link className="signin-link" to="/account">Account</Link>
+          <Link className="join-link" to="/signup">Join</Link>
+          <form className="search-box" role="search" onSubmit={(event) => { event.preventDefault(); onSearchSubmit(); }}>
             <input
               ref={searchInputRef}
               type="search"
+              value={searchQuery}
               placeholder="Find your thing"
               aria-label="Search products"
               onChange={(event) => onSearch(event.target.value)}
             />
+            <button className="search-submit" type="submit" aria-label="Search"><SearchIcon /></button>
             <kbd>/</kbd>
-          </label>
+          </form>
           <button className="cart-trigger" type="button" onClick={onOpenCart} aria-label={`Open shopping bag, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`}>
             <BagIcon />
             <span className="cart-label">Bag</span>
@@ -125,7 +83,7 @@ function Hero() {
       </div>
       <div className="hero-art">
         <img src="https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=1200&q=85" alt="Reusable drink bottles ready for everyday use" />
-        <div className="hero-sticker"><span>THE DAILY</span><strong>refresh</strong><span>FROM $12</span></div>
+        <div className="hero-sticker"><span>THE DAILY</span><strong>refresh</strong><span>FROM $16</span></div>
         <div className="hero-caption"><span className="caption-mark">01</span><span>EVERYDAY, BUT BETTER</span><span className="caption-line" /><span>2026</span></div>
       </div>
       <div className="hero-side-note" aria-hidden="true">STOCK UP ON THE GOOD STUFF</div>
@@ -146,7 +104,7 @@ function CategoryStrip({ activeCategory, onSelectCategory }) {
             onClick={() => onSelectCategory(category)}
             aria-pressed={activeCategory === category}
           >
-            {category === 'All' ? <>Everything <span>04</span></> : category}
+            {category === 'All' ? <>Everything <span>{products.length.toString().padStart(2, '0')}</span></> : category}
           </button>
         ))}
       </div>
@@ -155,32 +113,12 @@ function CategoryStrip({ activeCategory, onSelectCategory }) {
   );
 }
 
-function ProductCard({ product, onAdd }) {
-  return (
-    <article className="product-card">
-      <div className={`product-image ${product.imageClass}`}>
-        <span className="product-tag">{product.tag}</span>
-        <img src={product.image} alt={product.imageAlt} loading="lazy" />
-        <button className="quick-add" type="button" onClick={() => onAdd(product.id)} aria-label={`Add ${product.name} to bag`}>+</button>
-      </div>
-      <div className="product-info">
-        <div>
-          <p className="product-category">{product.category.toUpperCase()} <span>·</span> {product.subcategory.toUpperCase()}</p>
-          <h3>{product.name}</h3>
-        </div>
-        <p className="product-price">${product.price}<span>.00</span></p>
-      </div>
-      <p className="product-detail">{product.detail}</p>
-    </article>
-  );
-}
-
 function ProductSection({ products: visibleProducts, onAdd }) {
   return (
     <section className="finds-section" id="finds" aria-labelledby="finds-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow section-eyebrow">THE SHORTLIST <span>—</span> 001</p>
+          <p className="eyebrow section-eyebrow">THE SHORTLIST <span>—</span> {products.length.toString().padStart(3, '0')}</p>
           <h2 id="finds-title">New &amp; noteworthy<span>.</span></h2>
         </div>
         <p className="section-note">A few things worth<br />making room for.</p>
@@ -202,7 +140,7 @@ function ProductSection({ products: visibleProducts, onAdd }) {
   );
 }
 
-function CartDialog({ cart, itemCount, subtotal, onQuantityChange, onClose, dialogRef }) {
+function CartDialog({ cart, itemCount, subtotal, onQuantityChange, onClose, onCheckout, dialogRef }) {
   return (
     <dialog
       className="cart-dialog"
@@ -239,7 +177,7 @@ function CartDialog({ cart, itemCount, subtotal, onQuantityChange, onClose, dial
           <div className="cart-summary">
             <div className="subtotal"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div>
             <p>Shipping and taxes calculated at checkout.</p>
-            <button className="button button-dark checkout-button" type="button" disabled>Checkout <span>↗</span></button>
+            <button className="button button-dark checkout-button" type="button" onClick={onCheckout}>Checkout <span>↗</span></button>
           </div>
         </>
       )}
@@ -247,10 +185,23 @@ function CartDialog({ cart, itemCount, subtotal, onQuantityChange, onClose, dial
   );
 }
 
+function HomePage({ activeCategory, onSelectCategory, products: visibleProducts, onAdd }) {
+  return (
+    <main id="top">
+      <Hero />
+      <CategoryStrip activeCategory={activeCategory} onSelectCategory={onSelectCategory} />
+      <ProductSection products={visibleProducts} onAdd={onAdd} />
+    </main>
+  );
+}
+
 function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [cart, setCart] = useState({});
   const [activeCategory, setActiveCategory] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
   const [cartOpen, setCartOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const searchInputRef = useRef(null);
@@ -260,9 +211,14 @@ function App() {
   const subtotal = products.reduce((total, product) => total + product.price * (cart[product.id] || 0), 0);
   const visibleProducts = products.filter((product) => {
     const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
-    const searchText = `${product.name} ${product.category}`.toLowerCase();
+    const searchText = `${product.name} ${product.category} ${product.subcategory} ${product.detail} ${product.description}`.toLowerCase();
     return matchesCategory && searchText.includes(searchQuery.trim().toLowerCase());
   });
+
+  useEffect(() => {
+    if (location.pathname === '/search') setSearchQuery(searchParams.get('q') || '');
+    else if (location.pathname === '/') setSearchQuery('');
+  }, [location.pathname, searchParams]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -290,10 +246,10 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cartOpen]);
 
-  function addToCart(productId) {
-    setCart((current) => ({ ...current, [productId]: (current[productId] || 0) + 1 }));
+  function addToCart(productId, quantity = 1) {
+    setCart((current) => ({ ...current, [productId]: (current[productId] || 0) + quantity }));
     const product = products.find((item) => item.id === productId);
-    setToastMessage(`${product.name} added to your bag`);
+    setToastMessage(`${quantity > 1 ? `${quantity} × ` : ''}${product.name} added to your bag`);
   }
 
   function changeQuantity(productId, amount) {
@@ -309,11 +265,30 @@ function App() {
   function selectCategory(category) {
     setActiveCategory(category);
     setSearchQuery('');
-    if (searchInputRef.current) searchInputRef.current.value = '';
+    if (location.pathname !== '/') navigate('/#finds');
+  }
+
+  function submitSearch() {
+    const query = searchQuery.trim();
+    setActiveCategory('All');
+    navigate(query ? `/search?q=${encodeURIComponent(query)}` : '/search');
+  }
+
+  function reorderItems(items, orderId) {
+    setCart((current) => items.reduce((nextCart, item) => ({
+      ...nextCart,
+      [item.productId]: (nextCart[item.productId] || 0) + item.quantity,
+    }), { ...current }));
+    setToastMessage(`Items from order ${orderId} added to your bag`);
   }
 
   function closeCart() {
     setCartOpen(false);
+  }
+
+  function goToCheckout() {
+    closeCart();
+    navigate('/checkout');
   }
 
   return (
@@ -322,21 +297,29 @@ function App() {
         itemCount={itemCount}
         onOpenCart={() => setCartOpen(true)}
         onSearch={setSearchQuery}
+        onSearchSubmit={submitSearch}
         searchInputRef={searchInputRef}
         onSelectCategory={selectCategory}
+        searchQuery={searchQuery}
       />
-      <main id="top">
-        <Hero />
-        <CategoryStrip activeCategory={activeCategory} onSelectCategory={selectCategory} />
-        <ProductSection products={visibleProducts} onAdd={addToCart} />
-      </main>
-      <footer className="site-footer"><a className="brand footer-brand" href="#top">bostco<span>.</span></a><p>Good finds for real life.</p><span>© BOSTCO 2026</span></footer>
+      <Routes>
+        <Route path="/" element={<HomePage activeCategory={activeCategory} onSelectCategory={selectCategory} products={visibleProducts} onAdd={addToCart} />} />
+        <Route path="/search" element={<SearchPage key={location.search} query={searchQuery} onAdd={addToCart} />} />
+        <Route path="/products/:productId" element={<ProductPage key={location.pathname} onAdd={addToCart} />} />
+        <Route path="/checkout" element={<CheckoutPage cart={cart} subtotal={subtotal} onOrderComplete={() => setCart({})} />} />
+        <Route path="/account" element={<AccountPage onReorder={reorderItems} />} />
+        <Route path="/signin" element={<SignInPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <footer className="site-footer"><Link className="brand footer-brand" to="/">bostco<span>.</span></Link><p>Good finds for real life.</p><span>© BOSTCO 2026</span></footer>
       <CartDialog
         cart={cart}
         itemCount={itemCount}
         subtotal={subtotal}
         onQuantityChange={changeQuantity}
         onClose={closeCart}
+        onCheckout={goToCheckout}
         dialogRef={dialogRef}
       />
       <div className={`toast${toastMessage ? ' is-visible' : ''}`} role="status" aria-live="polite">{toastMessage}</div>
@@ -346,6 +329,8 @@ function App() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </StrictMode>,
 );

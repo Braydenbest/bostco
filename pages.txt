@@ -1,10 +1,10 @@
-landing page
+landing page (DONE)
 search/listing page
-product page
-shopping cart page
-checkout page
+product page (DONE)
+shopping cart page(DONE)
+checkout page (DONE)
 account page
 - settings
 - orders
-sign up page
-sign in/login
+sign up page(DONE)
+sign in/login(DONE)
